@@ -817,7 +817,7 @@
 
     var restart = createButton(
       UI.restartLabel,
-      "button button--secondary card__restart",
+      "card__restart",
       function () {
         restartFlow();
       }
