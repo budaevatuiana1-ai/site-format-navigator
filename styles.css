@@ -622,6 +622,23 @@ p {
   max-width: 58ch;
 }
 
+.contact-note {
+  max-width: 58ch;
+  margin: 0 0 14px;
+  padding: 10px 14px;
+  font-size: 13.5px;
+  line-height: 1.5;
+  color: var(--muted);
+  background: var(--accent-soft);
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  display: none;
+}
+
+.contact-note--visible {
+  display: block;
+}
+
 .card__cta-actions,
 .screen__cta-actions {
   display: flex;

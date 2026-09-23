@@ -75,8 +75,24 @@ global.window = {
   APP_DATA: null,
   ScaleEngine: engine,
   BudgetEngine: budgetEngine,
-  OngoingCostsEngine: ongoingCostsEngine
+  OngoingCostsEngine: ongoingCostsEngine,
+  __opened: [],
+  open: function (url, name) {
+    window.__opened.push({ url: url, name: name });
+  }
 };
+Object.defineProperty(global, "navigator", {
+  value: {
+    clipboard: {
+      writeText: function (text) {
+        global.__copied = text;
+        return { then: function (onOk) { onOk(); } };
+      }
+    }
+  },
+  configurable: true,
+  writable: true
+});
 global.document = documentShim;
 
 require("./data/questions.js");
@@ -1639,7 +1655,7 @@ assert(
 {
   const link = byTag(app, "a").filter((a) => a.textContent === "Написать в Telegram")[0];
   assert(link, "9J: telegram link present");
-  assert.strictEqual(link.getAttribute("href"), "https://t.me/TuianaBudaeva", "9J: href");
+  assert.strictEqual(link.getAttribute("href").indexOf("https://t.me/TuianaBudaeva?text="), 0, "9J: href prefix");
   assert.strictEqual(link.getAttribute("target"), "_blank", "9J: new tab");
   assert(
     bodyTexts().some((t) => t.indexOf("предварительный") !== -1),
@@ -1665,7 +1681,7 @@ assert(h1() === "Вам подойдёт:", "9.2A: result");
 {
   const tg = byTag(app, "a").filter((a) => a.textContent === "Написать в Telegram")[0];
   assert(tg, "9.2A: telegram link present");
-  assert.strictEqual(tg.getAttribute("href"), "https://t.me/TuianaBudaeva", "9.2A: tg href");
+  assert.strictEqual(tg.getAttribute("href").indexOf("https://t.me/TuianaBudaeva?text="), 0, "9.2A: tg href");
   assert.strictEqual(tg.getAttribute("target"), "_blank", "9.2A: tg new tab");
   assert.strictEqual(tg.getAttribute("rel"), "noopener", "9.2A: tg noopener");
   const max = byTag(app, "a").filter((a) => a.textContent === "Написать в MAX")[0];
@@ -1719,6 +1735,133 @@ assert(h1() === SCALE_UNDEFINED_TITLE, "9.2C: scale undefined screen");
 restartBtn()._fire("click");
 
 console.log("9.2A-C PASSED");
+
+// =========================================================
+// 9.3. Передача результатов навигатора в Telegram и MAX
+// =========================================================
+
+// A/B. Обычный результат: человекочитаемое сообщение + URL-encoding Telegram
+startOver();
+advAfter("Себя и свои услуги");
+advAfter("Есть одна основная тема или предложение");
+advAfter("Прочитать информацию и связаться со\u00A0мной");
+advAfter("Мне подходит компактная аккуратная страница");
+advAfter("Почти ничего менять не планирую");
+fillBudgetAndAdv(30000);
+assert(h1() === "Вам подойдёт:", "9.3A: result");
+{
+  const link = byTag(app, "a").filter((a) => a.textContent === "Написать в Telegram")[0];
+  assert(link, "9.3A: tg link present");
+  const href = link.getAttribute("href");
+  assert.strictEqual(href.indexOf("https://t.me/TuianaBudaeva?text="), 0, "9.3A/B: href prefix");
+  assert.strictEqual(href.indexOf(" "), -1, "9.3B: url encoded (no raw space)");
+  const text = decodeURIComponent(href.slice("https://t.me/TuianaBudaeva?text=".length));
+  assert(text.indexOf("Здравствуйте! Я прошёл(а) навигатор «Какой сайт вам нужен?».") !== -1, "9.3A: greeting");
+  assert(text.indexOf("Мои ответы:") !== -1, "9.3A: answers heading");
+  assert(text.indexOf("— Что хочу представить: себя и свои услуги") !== -1, "9.3A: q1 answer");
+  assert(text.indexOf("— Структура: одна основная тема") !== -1, "9.3A: q2 answer");
+  assert(text.indexOf("— Главное действие: прочитать информацию и связаться") !== -1, "9.3A: q3 answer");
+  assert(text.indexOf("— Формат на компьютере: компактная аккуратная страница") !== -1, "9.3A: q4 answer");
+  assert(text.indexOf("— Обновление сайта: почти ничего менять не планирую") !== -1, "9.3A: q5 answer");
+  assert(text.indexOf("— Бюджет: 30 000 ₽") !== -1, "9.3A: budget");
+  assert(text.indexOf("?:") === -1, "9.3A: no question-colon combos");
+  assert(text.indexOf("Результат:") !== -1, "9.3A: result heading");
+  assert(text.indexOf("Одностраничный сайт на Taplink") !== -1, "9.3A: recommendation");
+  assert(text.indexOf("Ориентир по разработке:") !== -1, "9.3A: dev heading");
+  assert(text.indexOf("от 15 000 ₽") !== -1, "9.3A: dev price");
+  assert(text.indexOf("После запуска:") !== -1, "9.3A: ongoing heading");
+  assert(text.indexOf("Платный тариф при необходимости — от 1 080 ₽ в год, домен отдельно.") !== -1, "9.3A: ongoing compact");
+  assert(text.indexOf("Альтернатива") === -1, "9.3A: no alternative block");
+  assert(text.indexOf("Хочу обсудить этот вариант.") !== -1, "9.3A: closing");
+  assert(text.indexOf("self-services") === -1, "9.3A: no internal id q1");
+  assert(text.indexOf("taplink-compact") === -1, "9.3A: no internal plan id");
+  assert(text.indexOf("undefined") === -1, "9.3A: no undefined");
+  assert(text.indexOf("null") === -1, "9.3A: no null");
+}
+
+// C. MAX: копирование + открытие + ошибка Clipboard не блокирует переход
+global.window.__opened = [];
+{
+  const max = byTag(app, "a").filter((a) => a.textContent === "Написать в MAX")[0];
+  assert(max, "9.3C: max link present");
+  assert.strictEqual(max.getAttribute("href"), MAX_URL, "9.3C: personal max url");
+  assert.strictEqual(max.getAttribute("target"), "_blank", "9.3C: new tab");
+  const copiedBefore = global.__copied;
+  click(max);
+  assert(global.__copied !== copiedBefore, "9.3C: clipboard write called");
+  assert(global.__copied.indexOf("Результат:") !== -1, "9.3C: copied message has result");
+  assert.strictEqual(global.window.__opened.length, 1, "9.3C: opened once");
+  assert.strictEqual(global.window.__opened[0].url, MAX_URL, "9.3C: opened max url");
+  assert(
+    byTag(app, "p").some((p) => p.textContent === "Результат скопирован. Вставьте его в сообщение в MAX."),
+    "9.3C: success note"
+  );
+}
+global.window.__opened = [];
+global.navigator.clipboard.writeText = function () { throw new Error("clipboard blocked"); };
+{
+  const max = byTag(app, "a").filter((a) => a.textContent === "Написать в MAX")[0];
+  click(max);
+  assert.strictEqual(global.window.__opened.length, 1, "9.3C: opens despite clipboard error");
+  assert.strictEqual(global.window.__opened[0].url, MAX_URL, "9.3C: opened max url on error");
+  assert(
+    byTag(app, "p").some((p) => p.textContent.indexOf("Не удалось скопировать результат автоматически") !== -1),
+    "9.3C: failure note"
+  );
+}
+global.navigator.clipboard.writeText = function (text) {
+  global.__copied = text;
+  return { then: function (onOk) { onOk(); } };
+};
+
+// D. Консультация: ответы + реальная причина, без выдуманного результата
+startOver();
+advAfter("Себя и свои услуги");
+advAfter("Есть одна основная тема или предложение");
+advAfter("Оставить заявку");
+advAfter("Мне не принципиально");
+advAfter("Почти ничего менять не планирую");
+fillBudgetAndAdv(90000);
+assert(h1() === DEV_Q, "9.3D: development question");
+advAfter("Пока не знаю");
+assert(h1() === CONSULT_TITLE, "9.3D: consultation screen");
+{
+  const link = byTag(app, "a").filter((a) => a.textContent === "Уточнить в Telegram")[0];
+  assert(link, "9.3D: tg link present");
+  const text = decodeURIComponent(link.getAttribute("href").slice("https://t.me/TuianaBudaeva?text=".length));
+  assert(text.indexOf("Мои ответы:") !== -1, "9.3D: answers heading");
+  assert(text.indexOf("— Что хочу представить: себя и свои услуги") !== -1, "9.3D: q1 answer");
+  assert(text.indexOf("— Главное действие: оставить заявку") !== -1, "9.3D: q3 answer");
+  assert(text.indexOf("— Развитие проекта: пока не знаю") !== -1, "9.3D: development answer");
+  assert(text.indexOf("?:") === -1, "9.3D: no question-colon combos");
+  assert(text.indexOf("Навигатор предложил уточнить задачу вместе:") !== -1, "9.3D: consult heading");
+  assert(text.indexOf("Пока неясно, как проект может развиваться дальше, а это влияет на выбор способа реализации.") !== -1, "9.3D: reason");
+  assert(text.indexOf("Хочу обсудить, какой вариант мне подойдёт.") !== -1, "9.3D: closing");
+  assert(text.indexOf("Результат:") === -1, "9.3D: no invented result");
+  assert(text.indexOf("Вам подойдёт:") === -1, "9.3D: no result heading");
+}
+
+// E. Бюджет «Пока не знаю» — в сообщении без undefined/null
+startOver();
+advAfter("Себя и свои услуги");
+advAfter("Есть одна основная тема или предложение");
+advAfter("Прочитать информацию и связаться со\u00A0мной");
+advAfter("Мне подходит компактная аккуратная страница");
+advAfter("Почти ничего менять не планирую");
+click(buttonByText(app, window.APP_DATA.budget.notSureLabel));
+assert(!nextBtn().disabled, "9.3E: budget not-sure enables next");
+adv();
+assert(h1() === "Вам подойдёт:", "9.3E: result");
+{
+  const link = byTag(app, "a").filter((a) => a.textContent === "Написать в Telegram")[0];
+  const text = decodeURIComponent(link.getAttribute("href").slice("https://t.me/TuianaBudaeva?text=".length));
+  assert(text.indexOf("— Бюджет: пока не определён") !== -1, "9.3E: budget not defined");
+  assert(text.indexOf("undefined") === -1, "9.3E: no undefined");
+  assert(text.indexOf("null") === -1, "9.3E: no null");
+}
+restartBtn()._fire("click");
+
+console.log("9.3A-E PASSED");
 
 // =========================================================
 // Iteration 9.1: формулировки, тупики и воспроизводимость
@@ -1913,7 +2056,7 @@ assert(
 {
   const link = byTag(app, "a").filter((a) => a.textContent === "Уточнить в Telegram")[0];
   assert(link, "9.1F: telegram cta");
-  assert.strictEqual(link.getAttribute("href"), "https://t.me/TuianaBudaeva", "9.1F: href");
+  assert.strictEqual(link.getAttribute("href").indexOf("https://t.me/TuianaBudaeva?text="), 0, "9.1F: href");
   assert.strictEqual(link.getAttribute("target"), "_blank", "9.1F: new tab");
   assert.strictEqual(link.getAttribute("rel"), "noopener", "9.1F: noopener");
 }
@@ -1946,7 +2089,7 @@ assert(
 {
   const link = byTag(app, "a").filter((a) => a.textContent === "Уточнить в Telegram")[0];
   assert(link, "9.1G: telegram cta");
-  assert.strictEqual(link.getAttribute("href"), "https://t.me/TuianaBudaeva", "9.1G: href");
+  assert.strictEqual(link.getAttribute("href").indexOf("https://t.me/TuianaBudaeva?text="), 0, "9.1G: href");
 }
 assert(restartBtn(), "9.1G: restart present");
 restartBtn()._fire("click");

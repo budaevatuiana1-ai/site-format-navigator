@@ -224,6 +224,368 @@
     return node;
   }
 
+  function formatAmount(digits) {
+    return String(digits).replace(/\B(?=(\d{3})+(?!\d))/g, " ");
+  }
+
+  var SHORT_LABELS = {
+    q1: "Что хочу представить",
+    q2: "Структура",
+    q3: "Главное действие",
+    q4: "Формат на компьютере",
+    q5: "Обновление сайта",
+    q6: "Бюджет",
+    booking: "Запись",
+    "shop-count": "Количество товаров",
+    "shop-updates": "Частота обновлений",
+    "shop-needs": "Что нужно для продажи",
+    calculator: "Возможности инструмента",
+    account: "Личный кабинет",
+    editing: "Планы по обновлению",
+    "tool-clarify": "Структура",
+    "scale-clarify": "Структура",
+    development: "Развитие проекта",
+    "edit-priority": "Приоритет после запуска"
+  };
+
+  var ANSWER_LABELS = {
+    "self-services": "себя и свои услуги",
+    company: "компанию или команду",
+    "several-services": "несколько услуг или направлений",
+    products: "товары",
+    "online-tool": "онлайн-инструмент",
+    "not-sure": "пока не знаю",
+    "one-service": "одна основная тема",
+    "similar-services": "несколько связанных частей",
+    "different-services": "самостоятельные услуги или направления",
+    "many-directions": "много направлений или разделов",
+    contact: "прочитать информацию и связаться",
+    request: "оставить заявку",
+    book: "записаться",
+    pay: "оплатить услугу",
+    buy: "купить товар",
+    "personal-result": "получить расчёт, результат теста или персональную информацию",
+    account: "входить в личный кабинет",
+    other: "другое",
+    compact: "компактная аккуратная страница",
+    wide: "полноценный широкий сайт",
+    "unusual-design": "необычный дизайн, анимация и эффектная подача",
+    "no-preference": "мне не принципиально",
+    "show-examples": "не знаю — показать примеры",
+    rarely: "почти ничего менять не планирую",
+    sometimes: "иногда менять цены, тексты или фотографии",
+    often: "регулярно самостоятельно обновлять сайт",
+    "via-specialist": "передавать изменения специалисту",
+    mixed: "часть изменений сам(а), сложные — специалисту",
+    "button-contact": "кнопка, чтобы написать или позвонить",
+    "leave-contacts": "оставить контакты",
+    "choose-date-time": "сам выбрать дату и время",
+    "choose-specialist-date-time": "выбрать специалиста, дату и время",
+    "up-to-10": "до 10",
+    "10-50": "10–50",
+    "50-200": "50–200",
+    "more-200": "больше 200",
+    regularly: "регулярно",
+    "show-and-request": "показать товары и принимать заявки",
+    cart: "корзина",
+    "online-payment": "оплата на сайте",
+    variants: "варианты товара: размер, цвет и т.\u00A0п.",
+    stock: "учёт наличия",
+    delivery: "разные способы доставки",
+    discounts: "скидки или промокоды",
+    "just-send": "принять ответы и отправить",
+    calculate: "сам рассчитать результат",
+    "show-result": "показать персональный результат",
+    "save-result": "сохранить результат",
+    history: "хранить историю результатов",
+    "view-data": "смотреть свои данные",
+    "view-orders": "смотреть историю заявок или заказов",
+    "get-results": "получать результаты",
+    files: "загружать или скачивать файлы",
+    "pay-services": "оплачивать услуги",
+    "edit-data": "менять свои данные",
+    prices: "цены",
+    texts: "тексты",
+    photos: "фотографии",
+    services: "услуги",
+    schedule: "расписание",
+    specialists: "специалистов",
+    pages: "страницы",
+    news: "новости или статьи",
+    "new-pages-services": "новые услуги или страницы",
+    "new-specialists": "новые специалисты",
+    payment: "оплата",
+    "calculator-test": "калькулятор или тест",
+    "personal-account": "личный кабинет",
+    "other-functions": "другие новые функции",
+    "nothing-planned": "ничего такого пока не планирую",
+    "self-edit": "самостоятельно легко менять информацию",
+    "design-freedom": "свобода в дизайне"
+  };
+
+  var CLARIFY_ANSWER_LABELS = {
+    "scale-clarify": {
+      no: "всё связано и идёт последовательно",
+      yes: "есть несколько самостоятельных направлений",
+      "not-sure": "пока не знаю"
+    },
+    "tool-clarify": {
+      no: "основную задачу решают в одном сценарии",
+      yes: "нужны отдельные страницы или разделы",
+      "not-sure": "пока не знаю"
+    },
+    "shop-updates": {
+      rarely: "редко",
+      sometimes: "иногда",
+      regularly: "регулярно",
+      "not-sure": "пока не знаю"
+    }
+  };
+
+  function lowercaseFirst(str) {
+    if (typeof str !== "string" || str.length === 0) {
+      return str;
+    }
+    return str.charAt(0).toLowerCase() + str.slice(1);
+  }
+
+  function humanizeAnswer(id) {
+    var baseTitle = null;
+    var options = null;
+    var q = findQuestion(id);
+    if (q) {
+      baseTitle = q.title;
+      options = q.options;
+    } else {
+      var b = findBranch(id);
+      if (b) {
+        baseTitle = b.title;
+        options = b.options;
+      } else {
+        var d = dynamicStepFor(id);
+        if (d) {
+          baseTitle = d.title;
+          options = d.options;
+        }
+      }
+    }
+    if (!baseTitle || !options) {
+      return null;
+    }
+    var title = SHORT_LABELS[id] || baseTitle;
+    var a = state.answers[id];
+    var ids = Array.isArray(a) ? a : typeof a === "string" && a ? [a] : [];
+    if (ids.length === 0) {
+      return null;
+    }
+    var perStep = CLARIFY_ANSWER_LABELS[id] || {};
+    var labels = [];
+    for (var i = 0; i < ids.length; i++) {
+      var label = perStep[ids[i]] || ANSWER_LABELS[ids[i]] || null;
+      if (label !== null) {
+        labels.push(label);
+        continue;
+      }
+      for (var k = 0; k < options.length; k++) {
+        if (options[k].id === ids[i]) {
+          labels.push(lowercaseFirst(options[k].label));
+          break;
+        }
+      }
+    }
+    if (labels.length === 0) {
+      return null;
+    }
+    return { title: title, text: labels.join(", ") };
+  }
+
+  function compactOngoing(ongoingRes, planId) {
+    if (!ongoingRes || !ongoingRes.display) {
+      return null;
+    }
+    if (planId === "taplink-compact" || planId === "taplink-structured") {
+      return "Платный тариф при необходимости — от 1 080 ₽ в год, домен отдельно.";
+    }
+    if (planId === "tilda-one-page" || planId === "tilda-multi-page") {
+      return "Платформа — около 6 000 ₽ в год, домен отдельно.";
+    }
+    if (planId === "code-one-page" || planId === "code-multi-page") {
+      return "Ориентировочно 400–1 000 ₽ в год, в основном домен.";
+    }
+    if (planId === "code-interactive") {
+      return "Домен и размещение — индивидуально.";
+    }
+    if (planId === "code-service") {
+      return "Расходы после запуска рассчитываются индивидуально.";
+    }
+    return ongoingRes.display.replace(/\.\s*$/, "");
+  }
+
+  function answeredStepsInOrder() {
+    var steps = buildSteps();
+    return steps.filter(function (id) {
+      if (id === "q6") {
+        var b = state.answers.q6;
+        return !!b && (b.notSure === true || (typeof b.amount === "string" && b.amount !== ""));
+      }
+      return answerPresent(id);
+    });
+  }
+
+  function buildContactMessage(info) {
+    info = info || {};
+    var a = state.answers || {};
+    var lines = [];
+
+    lines.push("Здравствуйте! Я прошёл(а) навигатор «Какой сайт вам нужен?».");
+    lines.push("");
+
+    lines.push("Мои ответы:");
+    answeredStepsInOrder().forEach(function (id) {
+      if (id === "q6") {
+        var budget = a.q6 || {};
+        var budgetText = "Бюджет: ";
+        if (budget.notSure === true) {
+          budgetText += "пока не определён";
+        } else if (typeof budget.amount === "string" && budget.amount !== "") {
+          budgetText += formatAmount(budget.amount) + " ₽";
+        } else {
+          budgetText += "пока не определён";
+        }
+        lines.push("— " + budgetText);
+        return;
+      }
+      var h = humanizeAnswer(id);
+      if (h) {
+        lines.push("— " + h.title + ": " + h.text);
+      }
+    });
+
+    lines.push("");
+
+    if (info.mode === "consultation") {
+      lines.push("Навигатор предложил уточнить задачу вместе:");
+      lines.push(
+        info.reason ||
+          "По вашим ответам пока нельзя уверенно выбрать один вариант."
+      );
+      lines.push("");
+      lines.push("Хочу обсудить, какой вариант мне подойдёт.");
+      return lines.join("\n");
+    }
+
+    lines.push("Результат:");
+    lines.push(recommendationName(info.scaleRes, info.implRes, info.budgetRes));
+
+    if (info.budgetRes && info.budgetRes.displayPrice) {
+      lines.push("");
+      lines.push("Ориентир по разработке:");
+      lines.push(info.budgetRes.displayPrice);
+    }
+
+    var planId = info.budgetRes ? info.budgetRes.planId : null;
+    var ongoingLine = compactOngoing(info.ongoingRes, planId);
+    if (ongoingLine) {
+      lines.push("");
+      lines.push("После запуска:");
+      lines.push(ongoingLine);
+    }
+
+    lines.push("");
+    lines.push("Хочу обсудить этот вариант.");
+
+    return lines.join("\n");
+  }
+
+  function copyContactNotify(message, note) {
+    var notify = function (text) {
+      note.textContent = text;
+      note.className = "contact-note contact-note--visible";
+    };
+    var failText =
+      "Не удалось скопировать результат автоматически. Вы можете написать мне в MAX и отправить результат вручную.";
+    var successText = "Результат скопирован. Вставьте его в сообщение в MAX.";
+
+    if (
+      typeof navigator === "undefined" ||
+      !navigator.clipboard ||
+      typeof navigator.clipboard.writeText !== "function"
+    ) {
+      notify(failText);
+      return;
+    }
+
+    try {
+      var result = navigator.clipboard.writeText(message);
+      var done = false;
+      var finish = function (text) {
+        if (done) {
+          return;
+        }
+        done = true;
+        notify(text);
+      };
+      if (result && typeof result.then === "function") {
+        result.then(
+          function () {
+            finish(successText);
+          },
+          function () {
+            finish(failText);
+          }
+        );
+      } else {
+        finish(successText);
+      }
+    } catch (err) {
+      notify(failText);
+    }
+  }
+
+  function contactButtons(message, variant) {
+    var isCard = variant === "card";
+    var actionsClass = isCard ? "card__cta-actions" : "screen__cta-actions";
+    var linkClass = isCard ? "card__cta-link" : "screen__cta";
+    var tgLabel = isCard ? "Написать в Telegram" : "Уточнить в Telegram";
+    var maxLabel = isCard ? "Написать в MAX" : "Уточнить в MAX";
+
+    var telegram = document.createElement("a");
+    telegram.className = "button button--primary " + linkClass;
+    telegram.setAttribute(
+      "href",
+      "https://t.me/TuianaBudaeva?text=" + encodeURIComponent(message)
+    );
+    telegram.setAttribute("target", "_blank");
+    telegram.setAttribute("rel", "noopener");
+    telegram.textContent = tgLabel;
+
+    var max = document.createElement("a");
+    max.className = "button button--secondary " + linkClass;
+    max.setAttribute("href", MAX_URL);
+    max.setAttribute("target", "_blank");
+    max.setAttribute("rel", "noopener");
+    max.textContent = maxLabel;
+
+    var note = el("p", "contact-note", "");
+
+    max.addEventListener("click", function (ev) {
+      if (ev && typeof ev.preventDefault === "function") {
+        ev.preventDefault();
+      }
+      if (typeof window !== "undefined" && typeof window.open === "function") {
+        window.open(MAX_URL, "_blank");
+      }
+      copyContactNotify(message, note);
+    });
+
+    var actions = document.createElement("div");
+    actions.className = actionsClass;
+    actions.appendChild(telegram);
+    actions.appendChild(max);
+
+    return { note: note, actions: actions };
+  }
+
   var state = {
     answers: {},
     currentStepId: null
@@ -794,26 +1156,17 @@
       )
     );
 
-    var ctaActions = document.createElement("div");
-    ctaActions.className = "card__cta-actions";
+    var contactMessage = buildContactMessage({
+      mode: "result",
+      scaleRes: scaleRes,
+      implRes: implRes,
+      budgetRes: budgetRes,
+      ongoingRes: ongoingRes
+    });
 
-    var telegram = document.createElement("a");
-    telegram.className = "button button--primary card__cta-link";
-    telegram.setAttribute("href", "https://t.me/TuianaBudaeva");
-    telegram.setAttribute("target", "_blank");
-    telegram.setAttribute("rel", "noopener");
-    telegram.textContent = "Написать в Telegram";
-    ctaActions.appendChild(telegram);
-
-    var max = document.createElement("a");
-    max.className = "button button--secondary card__cta-link";
-    max.setAttribute("href", MAX_URL);
-    max.setAttribute("target", "_blank");
-    max.setAttribute("rel", "noopener");
-    max.textContent = "Написать в MAX";
-    ctaActions.appendChild(max);
-
-    cta.appendChild(ctaActions);
+    var contact = contactButtons(contactMessage, "card");
+    cta.appendChild(contact.note);
+    cta.appendChild(contact.actions);
 
     var restart = createButton(
       UI.restartLabel,
@@ -872,26 +1225,14 @@
     text.textContent = reason;
     container.appendChild(text);
 
-    var ctaActions = document.createElement("div");
-    ctaActions.className = "screen__cta-actions";
+    var contactMessage = buildContactMessage({
+      mode: "consultation",
+      reason: reason
+    });
 
-    var telegram = document.createElement("a");
-    telegram.className = "button button--primary screen__cta";
-    telegram.setAttribute("href", "https://t.me/TuianaBudaeva");
-    telegram.setAttribute("target", "_blank");
-    telegram.setAttribute("rel", "noopener");
-    telegram.textContent = "Уточнить в Telegram";
-    ctaActions.appendChild(telegram);
-
-    var max = document.createElement("a");
-    max.className = "button button--secondary screen__cta";
-    max.setAttribute("href", MAX_URL);
-    max.setAttribute("target", "_blank");
-    max.setAttribute("rel", "noopener");
-    max.textContent = "Уточнить в MAX";
-    ctaActions.appendChild(max);
-
-    container.appendChild(ctaActions);
+    var contact = contactButtons(contactMessage, "info");
+    container.appendChild(contact.note);
+    container.appendChild(contact.actions);
 
     var restart = createButton(
       UI.restartLabel,
@@ -926,26 +1267,17 @@
       "Пока неясно, достаточно одной страницы или нужны отдельные самостоятельные разделы.";
     container.appendChild(text);
 
-    var ctaActions = document.createElement("div");
-    ctaActions.className = "screen__cta-actions";
+    var reason =
+      "Пока неясно, достаточно одной страницы или нужны отдельные самостоятельные разделы.";
 
-    var telegram = document.createElement("a");
-    telegram.className = "button button--primary screen__cta";
-    telegram.setAttribute("href", "https://t.me/TuianaBudaeva");
-    telegram.setAttribute("target", "_blank");
-    telegram.setAttribute("rel", "noopener");
-    telegram.textContent = "Уточнить в Telegram";
-    ctaActions.appendChild(telegram);
+    var contactMessage = buildContactMessage({
+      mode: "consultation",
+      reason: reason
+    });
 
-    var max = document.createElement("a");
-    max.className = "button button--secondary screen__cta";
-    max.setAttribute("href", MAX_URL);
-    max.setAttribute("target", "_blank");
-    max.setAttribute("rel", "noopener");
-    max.textContent = "Уточнить в MAX";
-    ctaActions.appendChild(max);
-
-    container.appendChild(ctaActions);
+    var contact = contactButtons(contactMessage, "info");
+    container.appendChild(contact.note);
+    container.appendChild(contact.actions);
 
     var restart = createButton(
       UI.restartLabel,
