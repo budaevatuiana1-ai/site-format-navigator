@@ -87,6 +87,8 @@ assert.strictEqual(engine.determineScale({ q1: "online-tool", "tool-clarify": "y
 assert.strictEqual(engine.determineScale({ q1: "online-tool", "tool-clarify": "not-sure" }).status, "clarify", "F: tool-clarify not-sure -> clarify");
 
 const ONLINE_TOOL = "Онлайн-инструмент: тест, калькулятор, личный кабинет и т.\u00A0п.";
+const MAX_URL =
+  "https://max.ru/u/f9LHodD0cOKvRb6ASZXZUlk2WX_vHmc6OCVphosOEus9wVCne4ydknETbgQ";
 
 documentShim.listeners.DOMContentLoaded[0]();
 
@@ -1646,6 +1648,77 @@ assert(
 }
 restartBtn()._fire("click");
 console.log("9A-J PASSED");
+
+// =========================================================
+// 9.2. MAX-кнопка: обычный результат + экраны уточнения
+// =========================================================
+
+// A. Обычный результат: Telegram сохранён, MAX добавлен рядом
+startOver();
+advAfter("Себя и свои услуги");
+advAfter("Есть одна основная тема или предложение");
+advAfter("Прочитать информацию и связаться со\u00A0мной");
+advAfter("Мне подходит компактная аккуратная страница");
+advAfter("Почти ничего менять не планирую");
+fillBudgetAndAdv(15000);
+assert(h1() === "Вам подойдёт:", "9.2A: result");
+{
+  const tg = byTag(app, "a").filter((a) => a.textContent === "Написать в Telegram")[0];
+  assert(tg, "9.2A: telegram link present");
+  assert.strictEqual(tg.getAttribute("href"), "https://t.me/TuianaBudaeva", "9.2A: tg href");
+  assert.strictEqual(tg.getAttribute("target"), "_blank", "9.2A: tg new tab");
+  assert.strictEqual(tg.getAttribute("rel"), "noopener", "9.2A: tg noopener");
+  const max = byTag(app, "a").filter((a) => a.textContent === "Написать в MAX")[0];
+  assert(max, "9.2A: max link present on result");
+  assert.strictEqual(max.getAttribute("href"), MAX_URL, "9.2A: max href");
+  assert.strictEqual(max.getAttribute("target"), "_blank", "9.2A: max new tab");
+  assert.strictEqual(max.getAttribute("rel"), "noopener", "9.2A: max noopener");
+}
+restartBtn()._fire("click");
+
+// B. renderConsultation: оба канала связи
+startOver();
+advAfter("Себя и свои услуги");
+advAfter("Есть одна основная тема или предложение");
+advAfter("Оставить заявку");
+advAfter("Мне не принципиально");
+advAfter("Почти ничего менять не планирую");
+fillBudgetAndAdv(90000);
+advAfter("Пока не знаю");
+assert(h1() === CONSULT_TITLE, "9.2B: consultation screen");
+{
+  const tg = byTag(app, "a").filter((a) => a.textContent === "Уточнить в Telegram")[0];
+  assert(tg, "9.2B: tg present on consultation");
+  const max = byTag(app, "a").filter((a) => a.textContent === "Уточнить в MAX")[0];
+  assert(max, "9.2B: max present on consultation");
+  assert.strictEqual(max.getAttribute("href"), MAX_URL, "9.2B: max href");
+  assert.strictEqual(max.getAttribute("target"), "_blank", "9.2B: max new tab");
+  assert.strictEqual(max.getAttribute("rel"), "noopener", "9.2B: max noopener");
+}
+restartBtn()._fire("click");
+
+// C. renderScaleUndefined: оба канала связи
+startOver();
+advAfter(ONLINE_TOOL);
+advAfter("Пока не знаю");
+advAfter("Получить расчёт, результат теста или другую персональную информацию");
+advAfter("Сам рассчитать результат");
+advAfter("Мне подходит компактная аккуратная страница");
+advAfter("Почти ничего менять не планирую");
+fillBudgetAndAdv(400000);
+assert(h1() === SCALE_UNDEFINED_TITLE, "9.2C: scale undefined screen");
+{
+  const tg = byTag(app, "a").filter((a) => a.textContent === "Уточнить в Telegram")[0];
+  assert(tg, "9.2C: tg present on scale undefined");
+  const max = byTag(app, "a").filter((a) => a.textContent === "Уточнить в MAX")[0];
+  assert(max, "9.2C: max present on scale undefined");
+  assert.strictEqual(max.getAttribute("href"), MAX_URL, "9.2C: max href");
+  assert.strictEqual(max.getAttribute("target"), "_blank", "9.2C: max new tab");
+  assert.strictEqual(max.getAttribute("rel"), "noopener", "9.2C: max noopener");
+}
+restartBtn()._fire("click");
+
+console.log("9.2A-C PASSED");
 
 // =========================================================
 // Iteration 9.1: формулировки, тупики и воспроизводимость

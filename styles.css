@@ -622,12 +622,26 @@ p {
   max-width: 58ch;
 }
 
+.card__cta-actions,
+.screen__cta-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 12px;
+  margin-top: 18px;
+}
+
+.card__cta-actions .card__cta-link,
+.screen__cta-actions .screen__cta {
+  flex: 1 1 280px;
+  min-width: 0;
+  margin: 0;
+}
+
 .card__cta-link {
   display: flex;
   width: 100%;
   max-width: 360px;
   min-height: 48px;
-  margin: 18px 0 10px;
 }
 
 .card__restart {
@@ -668,7 +682,6 @@ p {
   width: 100%;
   max-width: 360px;
   min-height: 48px;
-  margin-top: 8px;
 }
 
 .screen__restart {

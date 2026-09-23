@@ -35,6 +35,9 @@
 
   var CLARIFY_TITLE = "Здесь лучше уточнить задачу вместе";
 
+  var MAX_URL =
+    "https://max.ru/u/f9LHodD0cOKvRb6ASZXZUlk2WX_vHmc6OCVphosOEus9wVCne4ydknETbgQ";
+
   function hasReasonKeyword(implRes, keyword) {
     var reasons = implRes.reasons || [];
     for (var i = 0; i < reasons.length; i++) {
@@ -791,13 +794,26 @@
       )
     );
 
+    var ctaActions = document.createElement("div");
+    ctaActions.className = "card__cta-actions";
+
     var telegram = document.createElement("a");
     telegram.className = "button button--primary card__cta-link";
     telegram.setAttribute("href", "https://t.me/TuianaBudaeva");
     telegram.setAttribute("target", "_blank");
     telegram.setAttribute("rel", "noopener");
     telegram.textContent = "Написать в Telegram";
-    cta.appendChild(telegram);
+    ctaActions.appendChild(telegram);
+
+    var max = document.createElement("a");
+    max.className = "button button--secondary card__cta-link";
+    max.setAttribute("href", MAX_URL);
+    max.setAttribute("target", "_blank");
+    max.setAttribute("rel", "noopener");
+    max.textContent = "Написать в MAX";
+    ctaActions.appendChild(max);
+
+    cta.appendChild(ctaActions);
 
     var restart = createButton(
       UI.restartLabel,
@@ -856,13 +872,26 @@
     text.textContent = reason;
     container.appendChild(text);
 
+    var ctaActions = document.createElement("div");
+    ctaActions.className = "screen__cta-actions";
+
     var telegram = document.createElement("a");
     telegram.className = "button button--primary screen__cta";
     telegram.setAttribute("href", "https://t.me/TuianaBudaeva");
     telegram.setAttribute("target", "_blank");
     telegram.setAttribute("rel", "noopener");
     telegram.textContent = "Уточнить в Telegram";
-    container.appendChild(telegram);
+    ctaActions.appendChild(telegram);
+
+    var max = document.createElement("a");
+    max.className = "button button--secondary screen__cta";
+    max.setAttribute("href", MAX_URL);
+    max.setAttribute("target", "_blank");
+    max.setAttribute("rel", "noopener");
+    max.textContent = "Уточнить в MAX";
+    ctaActions.appendChild(max);
+
+    container.appendChild(ctaActions);
 
     var restart = createButton(
       UI.restartLabel,
@@ -897,13 +926,26 @@
       "Пока неясно, достаточно одной страницы или нужны отдельные самостоятельные разделы.";
     container.appendChild(text);
 
+    var ctaActions = document.createElement("div");
+    ctaActions.className = "screen__cta-actions";
+
     var telegram = document.createElement("a");
     telegram.className = "button button--primary screen__cta";
     telegram.setAttribute("href", "https://t.me/TuianaBudaeva");
     telegram.setAttribute("target", "_blank");
     telegram.setAttribute("rel", "noopener");
     telegram.textContent = "Уточнить в Telegram";
-    container.appendChild(telegram);
+    ctaActions.appendChild(telegram);
+
+    var max = document.createElement("a");
+    max.className = "button button--secondary screen__cta";
+    max.setAttribute("href", MAX_URL);
+    max.setAttribute("target", "_blank");
+    max.setAttribute("rel", "noopener");
+    max.textContent = "Уточнить в MAX";
+    ctaActions.appendChild(max);
+
+    container.appendChild(ctaActions);
 
     var restart = createButton(
       UI.restartLabel,
